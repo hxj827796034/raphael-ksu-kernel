@@ -206,6 +206,26 @@ jobs:
             echo "[-] no trace headers need fixing"
           fi
 
+      - name: Patch Qualcomm driver source issues
+        working-directory: raphael
+        run: |
+          set -e
+          # kgsl_events.c includes a local header with angle brackets, which the
+          # in-tree 4.14 build cannot resolve (no -I$(src)). Use quotes like the
+          # rest of the kgsl driver does.
+          F="drivers/gpu/msm/kgsl_events.c"
+          if [ -f "$F" ]; then
+            sed -i 's|#include <kgsl_device.h>|#include "kgsl_device.h"|' "$F"
+            echo "[+] fixed $F include"
+          fi
+          # sde_hw_catalog.h has a missing return type (implicit int), which the
+          # kernel's -Werror=implicit-int turns into an error. Restore 'bool'.
+          F="drivers/gpu/drm/msm/sde/sde_hw_catalog.h"
+          if [ -f "$F" ]; then
+            sed -i 's|static inline sde_hw_intf_te_supported(const struct sde_mdss_cfg|static inline bool sde_hw_intf_te_supported(const struct sde_mdss_cfg|' "$F"
+            echo "[+] fixed $F implicit int"
+          fi
+
       - name: Build kernel
         working-directory: raphael
         env:
@@ -214,7 +234,7 @@ jobs:
           CROSS_COMPILE_ARM32: arm-none-eabi-
           # GCC 10+ defaults to -fno-common, breaking old dtc and other hosts builds
           # AF_* address family update needed for newer glibc+SELinux classmap.h on 4.14
-          KCFLAGS: -fcommon -Wno-designated-init -std=gnu11
+          KCFLAGS: -fcommon -Wno-designated-init -Wno-error=implicit-int -std=gnu11
           HOSTCFLAGS: -fcommon
           HOSTLDFLAGS: -fcommon
         run: |
