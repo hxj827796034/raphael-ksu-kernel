@@ -12,11 +12,17 @@ CONFIG_KSU_DEBUG=y
 CONFIG_MODULES=y
 CONFIG_KPROBES=y
 
-# Skip the stack-protector compiler check (aarch64 GCC/clang toolchains in CI
-# trip it). Keep stack protector basics off to avoid the prepare-compiler-check.
+# Skip the stack-protector compiler check (the CI cross-GCC/clang trips it).
+# Unset STRONG/REGULAR cleanly (do NOT set STACKPROTECTOR=n, it conflicts with
+# the base defconfig's STRONG=y and the merge keeps the first).
 # CONFIG_CC_STACKPROTECTOR_STRONG is not set
 # CONFIG_CC_STACKPROTECTOR_REGULAR is not set
-CONFIG_CC_STACKPROTECTOR=n
+
+# LTO is clang/LLD specific (PE kernel was built with clang+LLD); the CI uses
+# GCC 11, so disable LTO to avoid the prepare-compiler-check LTO flag test.
+# CONFIG_LTO_CLANG is not set
+# CONFIG_LTO is not set
+# CONFIG_ARCH_SUPPORTS_LTO is not set
 
 # KernelSU userspace manager
 CONFIG_KSU_MANUAL_HOOK=y
