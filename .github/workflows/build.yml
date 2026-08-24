@@ -55,8 +55,7 @@ jobs:
             libelf-dev libssl-dev rsync unzip wget xz-utils \
             zip ca-certificates python3 \
             gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
-            gcc-arm-none-eabi binutils-arm-none-eabi \
-            lld
+            gcc-arm-none-eabi binutils-arm-none-eabi
           echo "deps ok"
           aarch64-linux-gnu-gcc --version
           arm-none-eabi-gcc --version
@@ -269,6 +268,19 @@ jobs:
             perl -0777 -pi -e 's/ret = btfm_slim_hw_init\(\s*bt_power_pdata->slim_dev->platform_data\s*\);/#ifdef CONFIG_BTFM_SLIM\n\t\tret = btfm_slim_hw_init(\n\t\t\tbt_power_pdata->slim_dev->platform_data\n\t\t);\n#else\n\t\tret = -ENODEV;\n#endif/s' "$F"
             echo "[+] guarded btfm_slim_hw_init call"
           fi
+          # SELinux globals are placed in the Qualcomm .bss.rtic section, which
+          # causes R_AARCH64_ADR_PREL_PG_HI21 truncation at the vmlinux link.
+          # Make them normal .bss variables.
+          F="security/selinux/hooks.c"
+          if [ -f "$F" ]; then
+            sed -i 's/int selinux_enforcing __rticdata;/int selinux_enforcing;/' "$F"
+            echo "[+] removed __rticdata from selinux_enforcing"
+          fi
+          F="security/selinux/ss/services.c"
+          if [ -f "$F" ]; then
+            sed -i 's/int ss_initialized __rticdata;/int ss_initialized;/' "$F"
+            echo "[+] removed __rticdata from ss_initialized"
+          fi
 
       - name: Build kernel
         working-directory: raphael
@@ -276,9 +288,6 @@ jobs:
           # aarch64-linux-gnu-gcc (apt). KCFLAGS below neutralizes the
           # GCC 10+/11 warnings-as-errors on Qualcomm code.
           CC: aarch64-linux-gnu-gcc
-          # Use lld for linking (GNU ld hits R_AARCH64_ADR_PREL_PG_HI21 truncation
-          # against the Qualcomm .bss.rtic section on large kernels).
-          LD: ld.lld
           CROSS_COMPILE: aarch64-linux-gnu-
           CROSS_COMPILE_ARM32: arm-none-eabi-
           KCFLAGS: -fcommon -Wno-designated-init -Wno-error=implicit-int -std=gnu11
@@ -292,7 +301,6 @@ jobs:
           make "$DEFCONFIG"
           make -j"$(nproc)" \
             CC="$CC" \
-            LD="$LD" \
             CROSS_COMPILE="$CROSS_COMPILE" \
             CROSS_COMPILE_ARM32="$CROSS_COMPILE_ARM32" \
             KCFLAGS="$KCFLAGS" \
