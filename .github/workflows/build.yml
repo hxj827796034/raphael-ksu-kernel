@@ -57,7 +57,7 @@ jobs:
             libelf-dev libssl-dev rsync unzip wget xz-utils \
             zip ca-certificates python3 \
             gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
-            gcc-arm-none-eabi g++-arm-none-eabi
+            gcc-arm-none-eabi binutils-arm-none-eabi
           echo "deps ok"
           aarch64-linux-gnu-gcc --version
           arm-none-eabi-gcc --version
