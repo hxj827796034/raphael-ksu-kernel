@@ -12,6 +12,12 @@ CONFIG_KSU_DEBUG=y
 CONFIG_MODULES=y
 CONFIG_KPROBES=y
 
+# Skip the stack-protector compiler check (aarch64 GCC/clang toolchains in CI
+# trip it). Keep stack protector basics off to avoid the prepare-compiler-check.
+# CONFIG_CC_STACKPROTECTOR_STRONG is not set
+# CONFIG_CC_STACKPROTECTOR_REGULAR is not set
+CONFIG_CC_STACKPROTECTOR=n
+
 # KernelSU userspace manager
 CONFIG_KSU_MANUAL_HOOK=y
 
