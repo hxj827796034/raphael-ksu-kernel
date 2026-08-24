@@ -70,10 +70,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: raphael
-          # Bumped v2: after disabling btfm_slim, old built-in.o references stale .o
-          key: kernel-v2-${{ inputs.kernel_branch || 'raphael' }}
-          restore-keys: |
-            kernel-
+          # v3 with unique key: no restore-keys to avoid pulling old built-in.o
+          # referencing the (now disabled) btfm_slim driver.
+          key: kernel-v3-${{ inputs.kernel_branch || 'raphael' }}-${{ github.run_id }}
+          # No restore-keys: every build gets a fresh source tree.
 
       - name: Cache KSU source
         uses: actions/cache@v4
