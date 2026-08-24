@@ -23,6 +23,10 @@ CONFIG_SUSFS_AUTO_ADD_SUS_KSTAT=n
 CONFIG_SUSFS_AUTO_ADD_SUS_MOUNT=n
 CONFIG_SUSFS_ENABLE_LOG=y
 
+# Disable Qualcomm proprietary Bluetooth driver (broken include path in OSS)
+# CONFIG_BTFM_SLIM is not set
+# CONFIG_BTFM_SLIM_WCN3990 is not set
+
 # TrickyStore (only meaningful if ENABLE_TRICKY=1)
 # CONFIG_TRICKY_STORE=y
 
@@ -38,3 +42,4 @@ CONFIG_MODULE_SIG=n
 # Performance/feature musts for K20 Pro
 CONFIG_SECCOMP=y
 CONFIG_SECCOMP_FILTER=y
+
