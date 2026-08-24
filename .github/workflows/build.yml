@@ -55,11 +55,10 @@ jobs:
             libelf-dev libssl-dev rsync unzip wget xz-utils \
             zip ca-certificates python3 \
             gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
-            gcc-arm-none-eabi binutils-arm-none-eabi \
-            clang lld llvm
+            gcc-arm-none-eabi binutils-arm-none-eabi
           echo "deps ok"
-          clang --version
           aarch64-linux-gnu-gcc --version
+          arm-none-eabi-gcc --version
 
       - name: Install ccache
         run: |
@@ -262,19 +261,27 @@ jobs:
             echo "[+] added gadget include path"
           fi
 
+      - name: Setup Linaro GCC 9.2 toolchain
+        run: |
+          set -e
+          TC="$HOME/toolchains"
+          GCCDIR="$TC/gcc-linaro-9.2.1-2019.12-x86_64_aarch64-linux-gnu"
+          mkdir -p "$TC"
+          if [ ! -d "$GCCDIR" ]; then
+            wget -q -O "$TC/gcc.tar.xz" \
+              https://releases.linaro.org/components/toolchain/binaries/9.2-2019.12/aarch64-linux-gnu/gcc-linaro-9.2.1-2019.12-x86_64_aarch64-linux-gnu.tar.xz
+            tar -xf "$TC/gcc.tar.xz" -C "$TC"
+            rm -f "$TC/gcc.tar.xz"
+          fi
+          "$GCCDIR/bin/aarch64-linux-gnu-gcc" --version
+          echo "GCC92_BIN=$GCCDIR/bin" >> $GITHUB_ENV
+
       - name: Build kernel
         working-directory: raphael
         env:
-          # Build with clang + LLVM tools (the Android-proven way for 4.14;
-          # avoids GCC 10+/11 warnings-as-errors on Qualcomm code).
-          CC: clang
-          LD: ld.lld
-          AR: llvm-ar
-          NM: llvm-nm
-          OBJCOPY: llvm-objcopy
-          OBJDUMP: llvm-objdump
-          STRIP: llvm-strip
-          CLANG_TRIPLE: aarch64-linux-gnu-
+          # Linaro GCC 9.2 (era-appropriate for 4.14; avoids GCC 10+/11
+          # warnings-as-errors on Qualcomm code).
+          CC: aarch64-linux-gnu-gcc
           CROSS_COMPILE: aarch64-linux-gnu-
           CROSS_COMPILE_ARM32: arm-none-eabi-
           KCFLAGS: -fcommon -Wno-designated-init -Wno-error=implicit-int -std=gnu11
@@ -286,15 +293,9 @@ jobs:
           export SUBARCH=arm64
           make clean 2>/dev/null || true
           make "$DEFCONFIG"
+          export PATH="$GCC92_BIN:$PATH"
           make -j"$(nproc)" \
             CC="$CC" \
-            LD="$LD" \
-            AR="$AR" \
-            NM="$NM" \
-            OBJCOPY="$OBJCOPY" \
-            OBJDUMP="$OBJDUMP" \
-            STRIP="$STRIP" \
-            CLANG_TRIPLE="$CLANG_TRIPLE" \
             CROSS_COMPILE="$CROSS_COMPILE" \
             CROSS_COMPILE_ARM32="$CROSS_COMPILE_ARM32" \
             KCFLAGS="$KCFLAGS" \
