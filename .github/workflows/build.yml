@@ -291,10 +291,11 @@ jobs:
             sed -i 's/default !IA64 && !(TILE && 64BIT)/default n/' "$F"
             echo "[+] forced KALLSYMS_BASE_RELATIVE off"
           fi
-          # SukiSU only typedefs syscall_fn_t for x86_64; arm64 (raphael) needs it too.
+          # SukiSU only typedefs syscall_fn_t for x86_64; arm64 (raphael) needs its
+          # own typedef (arm64 syscall fn = long (*)(const struct pt_regs *)).
           F="drivers/kernelsu/hook/syscall_hook.h"
           if [ -f "$F" ]; then
-            sed -i 's@#if defined(__x86_64__)@#if defined(__x86_64__) || defined(__arm64__)@' "$F"
+            perl -0777 -pi -e 's/#if defined\(__x86_64__\)\ntypedef sys_call_ptr_t syscall_fn_t;\n#endif/#if defined(__x86_64__)\ntypedef sys_call_ptr_t syscall_fn_t;\n#elif defined(__aarch64__)\ntypedef long (*syscall_fn_t)(const struct pt_regs *regs);\n#endif/' "$F"
             echo "[+] fixed syscall_fn_t for arm64 in $F"
           fi
 
