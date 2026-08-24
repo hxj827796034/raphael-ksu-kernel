@@ -291,6 +291,12 @@ jobs:
             sed -i 's/default !IA64 && !(TILE && 64BIT)/default n/' "$F"
             echo "[+] forced KALLSYMS_BASE_RELATIVE off"
           fi
+          # SukiSU only typedefs syscall_fn_t for x86_64; arm64 (raphael) needs it too.
+          F="drivers/kernelsu/hook/syscall_hook.h"
+          if [ -f "$F" ]; then
+            sed -i 's|#if defined(__x86_64__)|#if defined(__x86_64__) || defined(__arm64__)|' "$F"
+            echo "[+] fixed syscall_fn_t for arm64 in $F"
+          fi
 
       - name: Build kernel
         working-directory: raphael
