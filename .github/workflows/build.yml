@@ -291,6 +291,15 @@ jobs:
             sed -i 's/default !IA64 && !(TILE && 64BIT)/default n/' "$F"
             echo "[+] forced KALLSYMS_BASE_RELATIVE off"
           fi
+          # The PE raphael_defconfig hard-sets stack-protector-STRONG + LTO_CLANG,
+          # which the GCC CI build fails at prepare-compiler-check. Remove them
+          # from the merged defconfig so the check is skipped.
+          DC="arch/arm64/configs/${DEFCONFIG}"
+          if [ -f "$DC" ]; then
+            sed -i '/^CONFIG_CC_STACKPROTECTOR_STRONG=y/d' "$DC"
+            sed -i '/^CONFIG_LTO_CLANG=y/d' "$DC"
+            echo "[+] removed STRONG stack-protector + LTO_CLANG from $DC"
+          fi
           # SukiSU only typedefs syscall_fn_t for x86_64; arm64 (raphael) needs its
           # own typedef (arm64 syscall fn = long (*)(const struct pt_regs *)).
           F="drivers/kernelsu/hook/syscall_hook.h"
