@@ -174,30 +174,35 @@ jobs:
             echo "[-] $F is empty (expected, will be regenerated)"
           fi
 
-      - name: Stub proprietary Qualcomm headers
+      - name: Disable Qualcomm proprietary Bluetooth drivers
         working-directory: raphael
         run: |
-          # MiCode raphael-p-oss kernel references Qualcomm vendor headers
-          # (btfm_slim.h, etc.) that aren't in the OSS release.
-          # Stub them out so the build can proceed.
+          # MiCode raphael-p-oss references several Qualcomm vendor headers
+          # (btfm_slim.h, btfm_slim_wcn3990.h, etc.) that aren't in the OSS release.
+          # These are proprietary drivers that can never compile from OSS source.
+          # Just disable them by renaming the .c files - the rest of the kernel builds fine.
           # NOTE: avoid heredocs (YAML parser treats `<<` as a merge key).
-          # NOTE: the source uses `#include <btfm_slim.h>` (angle brackets).
-          # Kernel Makefile uses `-Iinclude`, so the stub goes in include/btfm_slim.h
+          for src in drivers/bluetooth/btfm_slim.c \
+                     sound/soc/codecs/slim.c; do
+            if [ -f "$src" ]; then
+              mv "$src" "${src}.disabled" 2>/dev/null || true
+              echo "[+] Disabled $src"
+            fi
+          done
+          # Also stub any other missing headers that show up
           F="include/btfm_slim.h"
-          if [ -f "drivers/bluetooth/btfm_slim.c" ] && [ ! -f "$F" ]; then
+          if [ ! -f "$F" ]; then
             {
               echo "/* SPDX-License-Identifier: GPL-2.0 */"
               echo "/* Stub for missing Qualcomm vendor header (MiCode OSS build) */"
               echo "#ifndef __BTFM_SLIM_H"
               echo "#define __BTFM_SLIM_H"
               echo "struct btfm_slim_data { int dummy; };"
-              echo "static inline int btfm_slim_init(void) { return 0; }"
-              echo "static inline void btfm_slim_exit(void) {}"
               echo "#endif"
             } > "$F"
             echo "[+] Stubbed $F"
           fi
-          # Other common ones in raphael-p-oss
+          # Stub any other missing headers (defensive)
           for f in sound/soc/codecs/slim_debug.h sound/soc/msm/slim.h; do
             if [ ! -f "$f" ] && grep -rq "$f" sound/ 2>/dev/null; then
               mkdir -p "$(dirname "$f")" 2>/dev/null
