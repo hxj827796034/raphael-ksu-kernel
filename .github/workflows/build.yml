@@ -302,22 +302,12 @@ jobs:
       - name: Build kernel
         working-directory: raphael
         env:
-          # Build with clang + LLVM tools (Android-proven; matches the ROM's
-          # clang-12 kernel and the penglezos lineage-20 kernel).
-          CC: clang
-          LD: ld.lld
-          AR: llvm-ar
-          NM: llvm-nm
-          OBJCOPY: llvm-objcopy
-          OBJDUMP: llvm-objdump
-          STRIP: llvm-strip
-          CLANG_TRIPLE: aarch64-linux-gnu-
+          # Use GCC 11 (apt). GCC tolerates K&R-style function declarations that
+          # appear in the SukiSU kernel source; clang 14 treats them as hard errors.
+          CC: aarch64-linux-gnu-gcc
           CROSS_COMPILE: aarch64-linux-gnu-
           CROSS_COMPILE_ARM32: arm-none-eabi-
-          # -Wno-implicit-int: SukiSU's per-file -Werror overrides -Wno-error, so
-          # disable the specific warnings that trip it (the SukiSU 4.14 backport has
-          # a few functions without an explicit return type).
-          KCFLAGS: -std=gnu11 -Wno-vla -Wno-unused-but-set-variable -Wno-tautological-compare -Wno-implicit-int -Wno-error=incompatible-pointer-types -Wno-error=return-type
+          KCFLAGS: -std=gnu11 -Wno-error=incompatible-pointer-types -Wno-designated-init
           HOSTCFLAGS: -fcommon
           HOSTLDFLAGS: -fcommon
         run: |
@@ -328,13 +318,6 @@ jobs:
           make "$DEFCONFIG"
           make -j"$(nproc)" \
             CC="$CC" \
-            LD="$LD" \
-            AR="$AR" \
-            NM="$NM" \
-            OBJCOPY="$OBJCOPY" \
-            OBJDUMP="$OBJDUMP" \
-            STRIP="$STRIP" \
-            CLANG_TRIPLE="$CLANG_TRIPLE" \
             CROSS_COMPILE="$CROSS_COMPILE" \
             CROSS_COMPILE_ARM32="$CROSS_COMPILE_ARM32" \
             KCFLAGS="$KCFLAGS" \
