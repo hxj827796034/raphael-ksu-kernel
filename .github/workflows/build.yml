@@ -297,8 +297,8 @@ jobs:
           DC="arch/arm64/configs/${DEFCONFIG}"
           if [ -f "$DC" ]; then
             sed -i '/^CONFIG_CC_STACKPROTECTOR_STRONG=y/d' "$DC"
-            sed -i '/^CONFIG_LTO_CLANG=y/d' "$DC"
-            echo "[+] removed STRONG stack-protector + LTO_CLANG from $DC"
+            sed -i '/^CONFIG_LTO=y/d; /^CONFIG_LTO_CLANG=y/d; /^CONFIG_LTO_CLANG_THIN=/d' "$DC"
+            echo "[+] removed STRONG stack-protector + LTO from $DC"
           fi
           # SukiSU only typedefs syscall_fn_t for x86_64; arm64 (raphael) needs its
           # own typedef (arm64 syscall fn = long (*)(const struct pt_regs *)).
