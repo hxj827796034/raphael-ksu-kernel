@@ -39,6 +39,10 @@ CONFIG_TMPFS_POSIX_ACL=y
 # CONFIG_MODULE_SIG_FORCE is unset (kept default-off by fragment)
 CONFIG_MODULE_SIG=n
 
+# Disable module versioning CRCs: GCC 11 emits R_AARCH64_ABS32 against
+# __crc_* symbols which breaks the arm64 PIE vmlinux link.
+# CONFIG_MODVERSIONS is not set
+
 # Performance/feature musts for K20 Pro
 CONFIG_SECCOMP=y
 CONFIG_SECCOMP_FILTER=y
