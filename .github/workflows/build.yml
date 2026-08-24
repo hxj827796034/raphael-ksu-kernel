@@ -8,9 +8,9 @@ on:
         required: false
         default: 'main'
       kernel_branch:
-        description: 'Kernel branch (penglezos lineage-20 by default)'
+        description: 'Kernel branch (PE twelve by default)'
         required: false
-        default: 'lineage-20'
+        default: 'twelve'
       enable_susfs:
         description: 'Enable SUSFS'
         required: false
@@ -23,7 +23,7 @@ on:
 
 env:
   KSU_REPO: "https://github.com/SukiSU-Ultra/SukiSU-Ultra.git"
-  KERNEL_REPO: "https://github.com/penglezos/kernel_xiaomi_raphael.git"
+  KERNEL_REPO: "https://github.com/PixelExperience-Devices/kernel_xiaomi_raphael.git"
   DEFCONFIG: "raphael_defconfig"
   ZIPNAME_BASE: "KSU-raphael-AnyKernel3"
   # Free runners: 14 GB disk, 4 vCPU, 7 GB RAM
@@ -94,12 +94,12 @@ jobs:
 
       - name: Clone kernel source
         run: |
-          BRANCH="${{ inputs.kernel_branch || 'lineage-20' }}"
+          BRANCH="${{ inputs.kernel_branch || 'twelve' }}"
           echo "Using kernel branch: $BRANCH"
           if [ ! -d raphael/.git ]; then
             git clone --depth=1 -b "$BRANCH" "$KERNEL_REPO" raphael || {
               echo "branch $BRANCH not found, trying fallback list..."
-              for b in lineage-20 lineage-19 lineage-18.1 lineage-17.1 raphael-oss raphael; do
+              for b in twelve thirteen lineage-20 lineage-19 raphael; do
                 echo "trying $b..."
                 git clone --depth=1 -b "$b" "$KERNEL_REPO" raphael && break
               done
