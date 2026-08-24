@@ -290,7 +290,7 @@ jobs:
           CC: aarch64-linux-gnu-gcc
           CROSS_COMPILE: aarch64-linux-gnu-
           CROSS_COMPILE_ARM32: arm-none-eabi-
-          KCFLAGS: -fcommon -Wno-designated-init -Wno-error=implicit-int -std=gnu11
+          KCFLAGS: -Wno-designated-init -Wno-error=implicit-int -std=gnu11
           HOSTCFLAGS: -fcommon
           HOSTLDFLAGS: -fcommon
         run: |
