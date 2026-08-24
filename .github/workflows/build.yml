@@ -180,10 +180,10 @@ jobs:
           # MiCode raphael-p-oss kernel references Qualcomm vendor headers
           # (btfm_slim.h, etc.) that aren't in the OSS release.
           # Stub them out so the build can proceed.
-          # NOTE: avoid heredocs (the YAML parser treats `<<` as a merge key).
-          # NOTE: the source uses `#include <btfm_slim.h>` (angle brackets),
-          # so the stub MUST go in the kernel include path, not next to .c.
-          F="include/linux/btfm_slim.h"
+          # NOTE: avoid heredocs (YAML parser treats `<<` as a merge key).
+          # NOTE: the source uses `#include <btfm_slim.h>` (angle brackets).
+          # Kernel Makefile uses `-Iinclude`, so the stub goes in include/btfm_slim.h
+          F="include/btfm_slim.h"
           if [ -f "drivers/bluetooth/btfm_slim.c" ] && [ ! -f "$F" ]; then
             {
               echo "/* SPDX-License-Identifier: GPL-2.0 */"
