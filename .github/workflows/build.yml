@@ -8,9 +8,9 @@ on:
         required: false
         default: 'main'
       kernel_branch:
-        description: 'Kernel branch (MiCode raphael by default)'
+        description: 'Kernel branch (penglezos lineage-20 by default)'
         required: false
-        default: 'raphael'
+        default: 'lineage-20'
       enable_susfs:
         description: 'Enable SUSFS'
         required: false
@@ -23,8 +23,8 @@ on:
 
 env:
   KSU_REPO: "https://github.com/SukiSU-Ultra/SukiSU-Ultra.git"
-  KERNEL_REPO: "https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git"
-  DEFCONFIG: "raphael_user_defconfig"
+  KERNEL_REPO: "https://github.com/penglezos/kernel_xiaomi_raphael.git"
+  DEFCONFIG: "raphael_defconfig"
   ZIPNAME_BASE: "KSU-raphael-AnyKernel3"
   # Free runners: 14 GB disk, 4 vCPU, 7 GB RAM
   # Use the same disk carefully; clean ccache/out at end.
@@ -55,7 +55,8 @@ jobs:
             libelf-dev libssl-dev rsync unzip wget xz-utils \
             zip ca-certificates python3 \
             gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
-            gcc-arm-none-eabi binutils-arm-none-eabi
+            gcc-arm-none-eabi binutils-arm-none-eabi \
+            clang lld llvm
           echo "deps ok"
           aarch64-linux-gnu-gcc --version
           arm-none-eabi-gcc --version
@@ -93,12 +94,12 @@ jobs:
 
       - name: Clone kernel source
         run: |
-          BRANCH="${{ inputs.kernel_branch || 'raphael-p-oss' }}"
+          BRANCH="${{ inputs.kernel_branch || 'lineage-20' }}"
           echo "Using kernel branch: $BRANCH"
           if [ ! -d raphael/.git ]; then
             git clone --depth=1 -b "$BRANCH" "$KERNEL_REPO" raphael || {
               echo "branch $BRANCH not found, trying fallback list..."
-              for b in raphael-p-oss raphael-q-oss raphael-r-oss raphael-oss raphael; do
+              for b in lineage-20 lineage-19 lineage-18.1 lineage-17.1 raphael-oss raphael; do
                 echo "trying $b..."
                 git clone --depth=1 -b "$b" "$KERNEL_REPO" raphael && break
               done
@@ -293,12 +294,19 @@ jobs:
       - name: Build kernel
         working-directory: raphael
         env:
-          # aarch64-linux-gnu-gcc (apt). KCFLAGS below neutralizes the
-          # GCC 10+/11 warnings-as-errors on Qualcomm code.
-          CC: aarch64-linux-gnu-gcc
+          # Build with clang + LLVM tools (Android-proven; matches the ROM's
+          # clang-12 kernel and the penglezos lineage-20 kernel).
+          CC: clang
+          LD: ld.lld
+          AR: llvm-ar
+          NM: llvm-nm
+          OBJCOPY: llvm-objcopy
+          OBJDUMP: llvm-objdump
+          STRIP: llvm-strip
+          CLANG_TRIPLE: aarch64-linux-gnu-
           CROSS_COMPILE: aarch64-linux-gnu-
           CROSS_COMPILE_ARM32: arm-none-eabi-
-          KCFLAGS: -Wno-designated-init -Wno-error=implicit-int -std=gnu11
+          KCFLAGS: -std=gnu11
           HOSTCFLAGS: -fcommon
           HOSTLDFLAGS: -fcommon
         run: |
@@ -309,6 +317,13 @@ jobs:
           make "$DEFCONFIG"
           make -j"$(nproc)" \
             CC="$CC" \
+            LD="$LD" \
+            AR="$AR" \
+            NM="$NM" \
+            OBJCOPY="$OBJCOPY" \
+            OBJDUMP="$OBJDUMP" \
+            STRIP="$STRIP" \
+            CLANG_TRIPLE="$CLANG_TRIPLE" \
             CROSS_COMPILE="$CROSS_COMPILE" \
             CROSS_COMPILE_ARM32="$CROSS_COMPILE_ARM32" \
             KCFLAGS="$KCFLAGS" \
