@@ -1,0 +1,12 @@
+ui_print("===================================================");
+ui_print("  AnyKernel3 — KSU for raphael");
+ui_print("===================================================");
+ui_print("  Model : Redmi K20 Pro / Mi 9T Pro");
+ui_print("  Code  : raphael (SDM855, A-only)");
+ui_print("  Kernel: SukiSU-Ultra (KSU)");
+ui_print("===================================================");
+
+set_perm_recursive(0, 0, 0755, 0644, "/tmp/ak3");
+set_perm(0, 0, 0755, "/tmp/ak3/anykernel.sh");
+set_perm(0, 0, 0755, "/tmp/ak3/META-INF/com/google/android/update-binary");
+run_program("/sbin/sh", "/tmp/ak3/META-INF/com/google/android/update-binary", "0", "/tmp/ak3");

@@ -1,0 +1,233 @@
+name: Build KSU Kernel (raphael)
+
+on:
+  workflow_dispatch:
+    inputs:
+      ksu_branch:
+        description: 'KSU branch/tag (SukiSU main by default)'
+        required: false
+        default: 'main'
+      kernel_branch:
+        description: 'Kernel branch (MiCode raphael by default)'
+        required: false
+        default: 'raphael'
+      enable_susfs:
+        description: 'Enable SUSFS'
+        required: false
+        default: 'true'
+        type: choice
+        options: ['true', 'false']
+  push:
+    paths:
+      - '.github/workflows/**'
+      - 'defconfig/**'
+      - 'scripts/ci-build.sh'
+
+env:
+  KSU_REPO: "https://github.com/SukiSU-Ultra/KernelSU.git"
+  KERNEL_REPO: "https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git"
+  DEFCONFIG: "raphael_defconfig"
+  ZIPNAME_BASE: "KSU-raphael-AnyKernel3"
+  # Free runners: 14 GB disk, 4 vCPU, 7 GB RAM
+  # Use the same disk carefully; clean ccache/out at end.
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 180
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Free up disk
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/share/swift
+          df -h
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential bc bison cpio curl flex git \
+            libelf-dev libssl-dev rsync unzip wget xz-utils \
+            zip ca-certificates python3
+          echo "deps ok"
+
+      - name: Install ccache
+        run: |
+          sudo apt-get install -y ccache
+          echo "ccache ok"
+          ccache --version
+
+      - name: Download Linaro GCC 9.2 (aarch64)
+        run: |
+          GCC_TARBALL="gcc-linaro-9.2.1-2019.12-x86_64_aarch64-linux-gnu.tar.xz"
+          GCC_URL="https://releases.linaro.org/components/toolchain/binaries/9.2-2019.12/aarch64-linux-gnu/${GCC_TARBALL}"
+          mkdir -p $HOME/toolchains
+          cd $HOME/toolchains
+          if [ ! -d aarch64-linux-gnu ]; then
+            echo "Downloading $GCC_URL"
+            wget -q --show-progress -O "$GCC_TARBALL" "$GCC_URL"
+            tar -xf "$GCC_TARBALL"
+            mv gcc-linaro-9.2.1-2019.12-x86_64_aarch64-linux-gnu aarch64-linux-gnu
+            rm -f "$GCC_TARBALL"
+          fi
+          $HOME/toolchains/aarch64-linux-gnu/bin/aarch64-none-linux-gnu-gcc --version
+
+      - name: Cache kernel source
+        uses: actions/cache@v4
+        with:
+          path: raphael
+          key: kernel-${{ inputs.kernel_branch || 'raphael' }}
+          restore-keys: |
+            kernel-
+
+      - name: Cache KSU source
+        uses: actions/cache@v4
+        with:
+          path: KernelSU
+          key: ksu-${{ inputs.ksu_branch || 'main' }}
+          restore-keys: |
+            ksu-
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ccache-${{ github.run_id }}-${{ inputs.kernel_branch || 'raphael' }}
+          restore-keys: |
+            ccache-
+
+      - name: Clone kernel source
+        run: |
+          if [ ! -d raphael/.git ]; then
+            git clone --depth=1 -b "${{ inputs.kernel_branch || 'raphael' }}" \
+              "$KERNEL_REPO" raphael
+          fi
+          cd raphael
+          git log -1 --oneline
+          ls arch/arm64/configs/ | grep -i raphael || { echo "no raphael defconfig"; exit 1; }
+
+      - name: Clone KSU source
+        run: |
+          if [ ! -d KernelSU/.git ]; then
+            git clone --depth=1 -b "${{ inputs.ksu_branch || 'main' }}" \
+              "$KSU_REPO" KernelSU
+          fi
+          cd KernelSU
+          git log -1 --oneline
+          ls kernel/ | head -20
+
+      - name: Apply KSU + defconfig merge
+        working-directory: raphael
+        run: |
+          set -e
+          # Inject KSU source
+          rm -rf ./KernelSU
+          cp -a ../KernelSU ./KernelSU
+          # Merge defconfig fragment (idempotent)
+          DC="arch/arm64/configs/${DEFCONFIG}"
+          test -f "$DC" || { echo "missing $DC"; exit 1; }
+          MERGE="../defconfig/raphael_ksu_defconfig"
+          test -f "$MERGE" || { echo "missing $MERGE"; exit 1; }
+          {
+            echo ""
+            echo "# --- KSU CI merge $(date -u +%FT%TZ) ---"
+            cat "$MERGE"
+          } >> "$DC.tmp"
+          awk -F'=' '
+            !($1 in seen) { print; seen[$1]=1 }
+          ' "$DC" "$DC.tmp" > "$DC.new" || cp "$DC.tmp" "$DC.new"
+          mv "$DC.new" "$DC"
+          rm -f "$DC.tmp"
+          echo "--- defconfig KSU lines ---"
+          grep -E '^CONFIG_KSU|^CONFIG_SUSFS' "$DC" || true
+
+      - name: Build kernel
+        working-directory: raphael
+        env:
+          PATH: ${{ env.PATH }}:$HOME/toolchains/aarch64-linux-gnu/bin
+          CC: aarch64-none-linux-gnu-gcc
+          CROSS_COMPILE: aarch64-none-linux-gnu-
+          CROSS_COMPILE_ARM32: arm-none-eabi-
+        run: |
+          set -e
+          export ARCH=arm64
+          export SUBARCH=arm64
+          make clean 2>/dev/null || true
+          make "$DEFCONFIG"
+          make -j"$(nproc)" \
+            CC="$CC" \
+            CROSS_COMPILE="$CROSS_COMPILE" \
+            CROSS_COMPILE_ARM32="$CROSS_COMPILE_ARM32" \
+            2>&1 | tee ../build.log
+
+      - name: Verify Image
+        working-directory: raphael
+        run: |
+          ls -la arch/arm64/boot/Image* 2>/dev/null || { echo "no Image produced"; exit 1; }
+
+      - name: Package AnyKernel3 zip
+        run: |
+          set -e
+          cd $GITHUB_WORKSPACE
+          TS=$(date +%Y%m%d-%H%M)
+          ZIP="${ZIPNAME_BASE}-${TS}.zip"
+          WORK="out/pack"
+          rm -rf "$WORK"
+          mkdir -p "$WORK"
+          cp -a anykernel3-raphael/. "$WORK"/
+          # Fetch real ak3-core.sh
+          if [ ! -s "$WORK/tools/ak3-core.sh" ]; then
+            curl -L --fail -o "$WORK/tools/ak3-core.sh" \
+              https://raw.githubusercontent.com/osm0sis/AnyKernel3/master/tools/ak3-core.sh
+            chmod 0755 "$WORK/tools/ak3-core.sh"
+          fi
+          # Choose best Image
+          if [ -f raphael/arch/arm64/boot/Image.gz-dtb ]; then
+            cp raphael/arch/arm64/boot/Image.gz-dtb "$WORK/Image.gz"
+          elif [ -f raphael/arch/arm64/boot/Image.gz ]; then
+            cp raphael/arch/arm64/boot/Image.gz "$WORK/"
+          elif [ -f raphael/arch/arm64/boot/Image ]; then
+            gzip -9 -c raphael/arch/arm64/boot/Image > "$WORK/Image.gz"
+          else
+            echo "no image"; exit 1
+          fi
+          # Update module.prop
+          sed -i "s|^version=.*|version=${TS}|" "$WORK/module.prop"
+          sed -i "s|^date=.*|date=$(date +%Y-%m-%d)|" "$WORK/module.prop"
+          # Sanity
+          file "$WORK/Image.gz" | grep -qi gzip || { echo "Image.gz invalid"; exit 1; }
+          ( cd "$WORK" && zip -r9 "../../$ZIP" . -x "*.bak" )
+          ls -la "$ZIP"
+          echo "ARTIFACT_PATH=$ZIP" >> $GITHUB_ENV
+          echo "ARTIFACT_SIZE=$(du -h "$ZIP" | awk '{print $1}')" >> $GITHUB_ENV
+
+      - name: Upload kernel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: KSU-raphael-zip
+          path: ${{ env.ARTIFACT_PATH }}
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          retention-days: 7
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Build result: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Artifact: \`${{ env.ARTIFACT_PATH }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Size: ${{ env.ARTIFACT_SIZE }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Kernel: ${{ inputs.kernel_branch || 'raphael' }} + KSU ${{ inputs.ksu_branch || 'main' }}" >> $GITHUB_STEP_SUMMARY

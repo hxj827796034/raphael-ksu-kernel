@@ -1,0 +1,40 @@
+# =============================================================
+#  KSU defconfig fragment for raphael_defconfig
+#  Appended to $KERNEL_DIR/arch/arm64/configs/raphael_defconfig
+#  by scripts/04-apply-patches.sh
+# =============================================================
+
+# KernelSU core
+CONFIG_KSU=y
+CONFIG_KSU_DEBUG=y
+# CONFIG_KSU_KPM is set automatically when KPM is on
+
+# KernelSU userspace manager
+CONFIG_KSU_MANUAL_HOOK=y
+
+# SUSFS (only if ENABLE_SUSFS=1; safe to leave, gated at runtime)
+CONFIG_SUSFS=y
+CONFIG_SUSFS_SUS_SU=n
+CONFIG_SUSFS_SUS_MOUNT=n
+CONFIG_SUSFS_SUS_KSTAT=n
+CONFIG_SUSFS_SUS_OVERLAYFS=n
+CONFIG_SUSFS_TRY_UMOUNT=n
+CONFIG_SUSFS_AUTO_ADD_SUS_KSTAT=n
+CONFIG_SUSFS_AUTO_ADD_SUS_MOUNT=n
+CONFIG_SUSFS_ENABLE_LOG=y
+
+# TrickyStore (only meaningful if ENABLE_TRICKY=1)
+# CONFIG_TRICKY_STORE=y
+
+# Useful general options for KSU userspace
+CONFIG_OVERLAY_FS=y
+CONFIG_TMPFS_XATTR=y
+CONFIG_TMPFS_POSIX_ACL=y
+
+# Make sure signed modules disabled so KPM/LKM load works
+# CONFIG_MODULE_SIG_FORCE is unset (kept default-off by fragment)
+CONFIG_MODULE_SIG=n
+
+# Performance/feature musts for K20 Pro
+CONFIG_SECCOMP=y
+CONFIG_SECCOMP_FILTER=y
