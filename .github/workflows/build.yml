@@ -281,6 +281,14 @@ jobs:
             sed -i 's/int ss_initialized __rticdata;/int ss_initialized;/' "$F"
             echo "[+] removed __rticdata from ss_initialized"
           fi
+          # KALLSYMS_BASE_RELATIVE defaults to 'y' on arm64, but its per-symbol
+          # relative offsets overflow on this large kernel image. Force it off
+          # so kallsyms emits absolute addresses.
+          F="init/Kconfig"
+          if [ -f "$F" ]; then
+            sed -i 's/default !IA64 && !(TILE && 64BIT)/default n/' "$F"
+            echo "[+] forced KALLSYMS_BASE_RELATIVE off"
+          fi
 
       - name: Build kernel
         working-directory: raphael
