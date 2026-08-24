@@ -51,3 +51,11 @@ CONFIG_MODULE_SIG=n
 CONFIG_SECCOMP=y
 CONFIG_SECCOMP_FILTER=y
 
+# Android 12L essentials: the MiCode raphael_user_defconfig is for Android 9
+# and omits binderfs + f2fs. The ROM (PE Plus 12.1) /data is f2fs and Android 10+
+# mounts /dev/binderfs, so without these the kernel cannot boot the ROM.
+CONFIG_ANDROID_BINDERFS=y
+CONFIG_F2FS_FS=y
+CONFIG_F2FS_FS_XATTR=y
+CONFIG_F2FS_STAT_FS=y
+
