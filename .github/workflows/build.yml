@@ -126,6 +126,19 @@ jobs:
           # Inject KSU source
           rm -rf ./KernelSU
           cp -a ../KernelSU ./KernelSU
+          # Integrate KSU into the build system (SukiSU setup.sh equivalent)
+          echo "[+] Setting up KSU symlink and Makefile entries..."
+          rm -rf drivers/kernelsu
+          ln -s "$(realpath --relative-to=drivers ./KernelSU/kernel)" drivers/kernelsu
+          echo "[+] Symlink: drivers/kernelsu -> $(readlink drivers/kernelsu)"
+          if ! grep -q "kernelsu" drivers/Makefile; then
+            printf "\nobj-\$(CONFIG_KSU) += kernelsu/\n" >> drivers/Makefile
+            echo "[+] drivers/Makefile updated"
+          fi
+          if ! grep -q "drivers/kernelsu/Kconfig" drivers/Kconfig; then
+            sed -i '/^endmenu/i source "drivers/kernelsu/Kconfig"' drivers/Kconfig
+            echo "[+] drivers/Kconfig updated"
+          fi
           # Merge defconfig fragment (idempotent)
           DC="arch/arm64/configs/${DEFCONFIG}"
           test -f "$DC" || { echo "missing $DC"; exit 1; }
