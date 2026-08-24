@@ -176,6 +176,35 @@ jobs:
             echo "[-] $F is empty (expected, will be regenerated)"
           fi
 
+      - name: Stub proprietary Qualcomm headers
+        working-directory: raphael
+        run: |
+          # MiCode raphael-p-oss kernel references Qualcomm vendor headers
+          # (btfm_slim.h, etc.) that aren't in the OSS release.
+          # Stub them out so the build can proceed.
+          F="drivers/bluetooth/btfm_slim.h"
+          if [ ! -f "$F" ] && [ -f "drivers/bluetooth/btfm_slim.c" ]; then
+            cat > "$F" <<'EOF'
+/* SPDX-License-Identifier: GPL-2.0 */
+/* Stub for missing Qualcomm vendor header (MiCode OSS build) */
+#ifndef __BTFM_SLIM_H
+#define __BTFM_SLIM_H
+struct btfm_slim_data { int dummy; };
+static inline int btfm_slim_init(void) { return 0; }
+static inline void btfm_slim_exit(void) {}
+#endif
+EOF
+            echo "[+] Stubbed $F"
+          fi
+          # Other common ones in raphael-p-oss
+          for f in sound/soc/codecs/slim_debug.h sound/soc/msm/slim.h; do
+            if [ ! -f "$f" ] && grep -rq "$f" sound/ 2>/dev/null; then
+              mkdir -p "$(dirname "$f")" 2>/dev/null
+              echo "/* stub */" > "$f"
+              echo "[+] Stubbed $f"
+            fi
+          done
+
       - name: Build kernel
         working-directory: raphael
         env:
@@ -188,7 +217,7 @@ jobs:
           HOSTCFLAGS: -fcommon
           HOSTLDFLAGS: -fcommon
         run: |
-          set -e
+          set -eo pipefail
           export ARCH=arm64
           export SUBARCH=arm64
           make clean 2>/dev/null || true
@@ -201,6 +230,8 @@ jobs:
             HOSTCFLAGS="$HOSTCFLAGS" \
             HOSTLDFLAGS="$HOSTLDFLAGS" \
             2>&1 | tee ../build.log
+          # Verify Image was produced
+          ls -la arch/arm64/boot/Image*
 
       - name: Verify Image
         working-directory: raphael
