@@ -331,13 +331,13 @@ jobs:
             HOSTCFLAGS="$HOSTCFLAGS" \
             HOSTLDFLAGS="$HOSTLDFLAGS" \
             2>&1 | tee ../build.log
-          # Verify Image was produced
-          ls -la arch/arm64/boot/Image*
+          # Verify Image was produced (PE kernel builds out-of-tree in out/)
+          ls -la out/arch/arm64/boot/Image*
 
       - name: Verify Image
         working-directory: raphael
         run: |
-          ls -la arch/arm64/boot/Image* 2>/dev/null || { echo "no Image produced"; exit 1; }
+          ls -la out/arch/arm64/boot/Image* 2>/dev/null || { echo "no Image produced"; exit 1; }
 
       - name: Package AnyKernel3 zip
         run: |
@@ -353,20 +353,22 @@ jobs:
           chmod 0755 "$WORK/tools/ak3-core.sh" "$WORK/tools/ak3-custom.sh" 2>/dev/null || true
           chmod 0755 "$WORK/tools/magiskboot" "$WORK/tools/busybox" 2>/dev/null || true
           # Kernel image: use Image.gz-dtb (kernel+DTB, the format AnyKernel3 expects)
-          if [ -f raphael/arch/arm64/boot/Image.gz-dtb ]; then
-            cp raphael/arch/arm64/boot/Image.gz-dtb "$WORK/Image.gz-dtb"
-          elif [ -f raphael/arch/arm64/boot/Image-dtb ]; then
-            gzip -9 -c raphael/arch/arm64/boot/Image-dtb > "$WORK/Image.gz-dtb"
-          elif [ -f raphael/arch/arm64/boot/Image.gz ]; then
-            cp raphael/arch/arm64/boot/Image.gz "$WORK/Image.gz-dtb"
-          elif [ -f raphael/arch/arm64/boot/Image ]; then
-            gzip -9 -c raphael/arch/arm64/boot/Image > "$WORK/Image.gz-dtb"
+          # PE kernel builds OUT-OF-TREE (O=out), so images are under out/arch/arm64/boot/
+          IMGDIR="raphael/out/arch/arm64/boot"
+          if [ -f "$IMGDIR/Image.gz-dtb" ]; then
+            cp "$IMGDIR/Image.gz-dtb" "$WORK/Image.gz-dtb"
+          elif [ -f "$IMGDIR/Image-dtb" ]; then
+            gzip -9 -c "$IMGDIR/Image-dtb" > "$WORK/Image.gz-dtb"
+          elif [ -f "$IMGDIR/Image.gz" ]; then
+            cp "$IMGDIR/Image.gz" "$WORK/Image.gz-dtb"
+          elif [ -f "$IMGDIR/Image" ]; then
+            gzip -9 -c "$IMGDIR/Image" > "$WORK/Image.gz-dtb"
           else
-            echo "no image"; exit 1
+            echo "no image in $IMGDIR"; exit 1
           fi
           # Optional dtbo (if built), so flash_dtbo has something to flash
-          if [ -f raphael/arch/arm64/boot/dtbo.img ]; then
-            cp raphael/arch/arm64/boot/dtbo.img "$WORK/dtbo.img"
+          if [ -f "$IMGDIR/dtbo.img" ]; then
+            cp "$IMGDIR/dtbo.img" "$WORK/dtbo.img"
             echo "[+] including dtbo.img"
           fi
           # Update module.prop
