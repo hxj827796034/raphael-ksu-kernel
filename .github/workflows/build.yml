@@ -94,13 +94,20 @@ jobs:
 
       - name: Clone kernel source
         run: |
+          BRANCH="${{ inputs.kernel_branch || 'raphael-p-oss' }}"
+          echo "Using kernel branch: $BRANCH"
           if [ ! -d raphael/.git ]; then
-            git clone --depth=1 -b "${{ inputs.kernel_branch || 'raphael' }}" \
-              "$KERNEL_REPO" raphael
+            git clone --depth=1 -b "$BRANCH" "$KERNEL_REPO" raphael || {
+              echo "branch $BRANCH not found, trying fallback list..."
+              for b in raphael-p-oss raphael-q-oss raphael-r-oss raphael-oss raphael; do
+                echo "trying $b..."
+                git clone --depth=1 -b "$b" "$KERNEL_REPO" raphael && break
+              done
+            }
           fi
           cd raphael
           git log -1 --oneline
-          ls arch/arm64/configs/ | grep -i raphael || { echo "no raphael defconfig"; exit 1; }
+          ls arch/arm64/configs/ | grep -i raphael || { echo "no raphael defconfig found"; exit 1; }
 
       - name: Clone KSU source
         run: |
