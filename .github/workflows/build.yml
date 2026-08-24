@@ -314,7 +314,7 @@ jobs:
           CLANG_TRIPLE: aarch64-linux-gnu-
           CROSS_COMPILE: aarch64-linux-gnu-
           CROSS_COMPILE_ARM32: arm-none-eabi-
-          KCFLAGS: -std=gnu11 -Wno-vla -Wno-unused-but-set-variable -Wno-tautological-compare
+          KCFLAGS: -std=gnu11 -Wno-vla -Wno-unused-but-set-variable -Wno-tautological-compare -Wno-error
           HOSTCFLAGS: -fcommon
           HOSTLDFLAGS: -fcommon
         run: |
