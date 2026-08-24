@@ -1,55 +1,35 @@
-#!/system/bin/sh
-# =============================================================
-#  AnyKernel3 flashable — raphael (Redmi K20 Pro / Mi 9T Pro)
-#  Replace stock boot Image with KSU-enabled kernel
-# =============================================================
-# kernel_patch=<patch level>
-# cmdline=<cmdline to append>
-# device.name1=raphael
-# device.name2=
-# device.name3=
-# supported.versions=10-15
-# supported.patchlevels=
-# ==============<DON'T CHANGE>============================
-properties() {
-  kernel.string=KSU-SukiSU-for-raphael
-  do.devicecheck=0
-  do.modules=0
-  do.systemless=0
-  do.cleanup=1
-  do.cleanuponabort=0
-  device.name1=raphael
-  device.name2=
-  device.name3=
-  supported.versions=9-16
-  supported.patchlevels=
-  supported.vendorpatchlevels=
-}
-# =============</DON'T CHANGE>============================
-# Author: ksu-builder
-# Credit: osm0sis, topjohnwu, SukiSU-Ultra team
+### AnyKernel3 Ramdisk Mod Script
+## osm0sis @ xda-developers
 
-block=/dev/block/bootdevice/by-name/boot
-kernel=Image.gz
-is_slot_device=0
-ramdisk_compression=auto
-patch_vbmeta_flag=0
-no_magisk_check=1
+### AnyKernel setup
+# global properties
+properties() { '
+kernel.string=KSU-SukiSU For Raphael
+do.devicecheck=1
+do.cleanup=1
+device.name1=raphael
+device.name2=raphaelin
+'; } # end properties
 
-. tools/ak3-core.sh
+### AnyKernel install
+# boot shell variables
+BLOCK=/dev/block/bootdevice/by-name/boot;
+IS_SLOT_DEVICE=0;
+NO_BLOCK_DISPLAY=1;
 
-# Extra safety: verify image is non-zero and is a real Image
-if [ ! -s "$WORKING_DIR/Image.gz" ]; then
-  abort "Image.gz is empty — bad build"
-fi
+# import functions/variables and setup patching - see for reference (DO NOT REMOVE)
+. tools/ak3-core.sh;
+. tools/ak3-custom.sh;
 
-# (gzip already validated during packaging; some TWRP busybox 'file'
-#  builds report gzip differently and would false-abort here)
+# boot install
+split_boot;
+flash_boot;
+## end boot install
 
-# Flash
-dump_boot | replace_boot
+# dtbo install
+flash_dtbo;
+## end dtbo install
 
-ui_print "✅ KSU kernel installed."
-ui_print "👉 Install 'KernelSU' (official) or 'SukiSU Manager' to manage root."
-
-exit 0
+# cache clean
+clean_cache;
+## end cache clean

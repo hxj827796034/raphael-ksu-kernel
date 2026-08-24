@@ -333,29 +333,31 @@ jobs:
           rm -rf "$WORK"
           mkdir -p "$WORK"
           cp -a anykernel3-raphael/. "$WORK"/
-          # Fetch real ak3-core.sh
-          if [ ! -s "$WORK/tools/ak3-core.sh" ]; then
-            curl -L --fail -o "$WORK/tools/ak3-core.sh" \
-              https://raw.githubusercontent.com/osm0sis/AnyKernel3/master/tools/ak3-core.sh
-            chmod 0755 "$WORK/tools/ak3-core.sh"
-          fi
-          # Choose best Image (image must include the DTB so it boots)
+          # Ensure the AnyKernel3 tool binaries are executable
+          chmod 0755 "$WORK/tools/ak3-core.sh" "$WORK/tools/ak3-custom.sh" 2>/dev/null || true
+          chmod 0755 "$WORK/tools/magiskboot" "$WORK/tools/busybox" 2>/dev/null || true
+          # Kernel image: use Image.gz-dtb (kernel+DTB, the format AnyKernel3 expects)
           if [ -f raphael/arch/arm64/boot/Image.gz-dtb ]; then
-            cp raphael/arch/arm64/boot/Image.gz-dtb "$WORK/Image.gz"
+            cp raphael/arch/arm64/boot/Image.gz-dtb "$WORK/Image.gz-dtb"
           elif [ -f raphael/arch/arm64/boot/Image-dtb ]; then
-            gzip -9 -c raphael/arch/arm64/boot/Image-dtb > "$WORK/Image.gz"
+            gzip -9 -c raphael/arch/arm64/boot/Image-dtb > "$WORK/Image.gz-dtb"
           elif [ -f raphael/arch/arm64/boot/Image.gz ]; then
-            cp raphael/arch/arm64/boot/Image.gz "$WORK/"
+            cp raphael/arch/arm64/boot/Image.gz "$WORK/Image.gz-dtb"
           elif [ -f raphael/arch/arm64/boot/Image ]; then
-            gzip -9 -c raphael/arch/arm64/boot/Image > "$WORK/Image.gz"
+            gzip -9 -c raphael/arch/arm64/boot/Image > "$WORK/Image.gz-dtb"
           else
             echo "no image"; exit 1
           fi
+          # Optional dtbo (if built), so flash_dtbo has something to flash
+          if [ -f raphael/arch/arm64/boot/dtbo.img ]; then
+            cp raphael/arch/arm64/boot/dtbo.img "$WORK/dtbo.img"
+            echo "[+] including dtbo.img"
+          fi
           # Update module.prop
-          sed -i "s|^version=.*|version=${TS}|" "$WORK/module.prop"
-          sed -i "s|^date=.*|date=$(date +%Y-%m-%d)|" "$WORK/module.prop"
+          sed -i "s|^version=.*|version=${TS}|" "$WORK/module.prop" 2>/dev/null || true
+          sed -i "s|^date=.*|date=$(date +%Y-%m-%d)|" "$WORK/module.prop" 2>/dev/null || true
           # Sanity
-          file "$WORK/Image.gz" | grep -qi gzip || { echo "Image.gz invalid"; exit 1; }
+          file "$WORK/Image.gz-dtb" | grep -qi gzip || { echo "Image.gz-dtb invalid"; exit 1; }
           ( cd "$WORK" && zip -r9 "../../$ZIP" . -x "*.bak" )
           ls -la "$ZIP"
           echo "ARTIFACT_PATH=$ZIP" >> $GITHUB_ENV
