@@ -26,7 +26,7 @@ on:
 env:
   KSU_REPO: "https://github.com/SukiSU-Ultra/SukiSU-Ultra.git"
   KERNEL_REPO: "https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git"
-  DEFCONFIG: "raphael_defconfig"
+  DEFCONFIG: "raphael_user_defconfig"
   ZIPNAME_BASE: "KSU-raphael-AnyKernel3"
   # Free runners: 14 GB disk, 4 vCPU, 7 GB RAM
   # Use the same disk carefully; clean ccache/out at end.
