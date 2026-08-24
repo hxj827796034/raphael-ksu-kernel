@@ -70,7 +70,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: raphael
-          key: kernel-${{ inputs.kernel_branch || 'raphael' }}
+          # Bumped v2: after disabling btfm_slim, old built-in.o references stale .o
+          key: kernel-v2-${{ inputs.kernel_branch || 'raphael' }}
           restore-keys: |
             kernel-
 
