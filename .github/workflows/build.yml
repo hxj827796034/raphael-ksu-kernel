@@ -24,7 +24,7 @@ on:
       - 'scripts/ci-build.sh'
 
 env:
-  KSU_REPO: "https://github.com/SukiSU-Ultra/KernelSU.git"
+  KSU_REPO: "https://github.com/SukiSU-Ultra/SukiSU-Ultra.git"
   KERNEL_REPO: "https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git"
   DEFCONFIG: "raphael_defconfig"
   ZIPNAME_BASE: "KSU-raphael-AnyKernel3"
