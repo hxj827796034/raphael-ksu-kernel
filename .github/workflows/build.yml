@@ -55,29 +55,18 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             build-essential bc bison cpio curl flex git \
             libelf-dev libssl-dev rsync unzip wget xz-utils \
-            zip ca-certificates python3
+            zip ca-certificates python3 \
+            gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+            gcc-arm-none-eabi g++-arm-none-eabi
           echo "deps ok"
+          aarch64-linux-gnu-gcc --version
+          arm-none-eabi-gcc --version
 
       - name: Install ccache
         run: |
           sudo apt-get install -y ccache
           echo "ccache ok"
           ccache --version
-
-      - name: Download Linaro GCC 9.2 (aarch64)
-        run: |
-          GCC_TARBALL="gcc-linaro-9.2.1-2019.12-x86_64_aarch64-linux-gnu.tar.xz"
-          GCC_URL="https://releases.linaro.org/components/toolchain/binaries/9.2-2019.12/aarch64-linux-gnu/${GCC_TARBALL}"
-          mkdir -p $HOME/toolchains
-          cd $HOME/toolchains
-          if [ ! -d aarch64-linux-gnu ]; then
-            echo "Downloading $GCC_URL"
-            wget -q --show-progress -O "$GCC_TARBALL" "$GCC_URL"
-            tar -xf "$GCC_TARBALL"
-            mv gcc-linaro-9.2.1-2019.12-x86_64_aarch64-linux-gnu aarch64-linux-gnu
-            rm -f "$GCC_TARBALL"
-          fi
-          $HOME/toolchains/aarch64-linux-gnu/bin/aarch64-none-linux-gnu-gcc --version
 
       - name: Cache kernel source
         uses: actions/cache@v4
@@ -151,9 +140,8 @@ jobs:
       - name: Build kernel
         working-directory: raphael
         env:
-          PATH: ${{ env.PATH }}:$HOME/toolchains/aarch64-linux-gnu/bin
-          CC: aarch64-none-linux-gnu-gcc
-          CROSS_COMPILE: aarch64-none-linux-gnu-
+          CC: aarch64-linux-gnu-gcc
+          CROSS_COMPILE: aarch64-linux-gnu-
           CROSS_COMPILE_ARM32: arm-none-eabi-
         run: |
           set -e
