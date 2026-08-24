@@ -247,6 +247,19 @@ jobs:
             sed -i 's|int sz = __compiletime_object_size(addr);|int sz = -1; /* GCC11 fortify false positives */|' "$F"
             echo "[+] neutralized compiletime object-size check in $F"
           fi
+          # Qualcomm USB gadget backport uses <function/u_ncm.h> with angle
+          # brackets; the in-tree 4.14 build has no -I for the gadget dir, so
+          # fix the include and add the gadget dir to the include path.
+          F="drivers/usb/gadget/configfs.c"
+          if [ -f "$F" ]; then
+            sed -i 's|#include <function/u_ncm.h>|#include "function/u_ncm.h"|' "$F"
+            echo "[+] fixed $F include"
+          fi
+          F="drivers/usb/gadget/Makefile"
+          if [ -f "$F" ]; then
+            printf '%s\n' 'ccflags-y += -I$(srctree)/drivers/usb/gadget' >> "$F"
+            echo "[+] added gadget include path"
+          fi
 
       - name: Build kernel
         working-directory: raphael
