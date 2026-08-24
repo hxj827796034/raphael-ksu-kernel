@@ -184,20 +184,26 @@ jobs:
           # This step is now a no-op - the defconfig fragment handles it.
           echo "BTFM_SLIM disabled via defconfig fragment"
 
-      - name: Patch mdss PLL trace include path
+      - name: Fix trace header include paths
         working-directory: raphael
         run: |
-          # mdss_pll_trace.h sets TRACE_INCLUDE_PATH to '.', but define_trace.h
-          # resolves that path relative to include/trace/ (not the .c file's dir),
-          # so '#include "./mdss_pll_trace.h"' fails with "No such file or directory".
-          # Point it at the real location, expressed relative to include/trace/.
-          F="drivers/clk/qcom/mdss/mdss_pll_trace.h"
-          if [ -f "$F" ]; then
-            sed -i 's|#define TRACE_INCLUDE_PATH \.$|#define TRACE_INCLUDE_PATH ../../drivers/clk/qcom/mdss|' "$F"
-            echo "[+] Patched $F:"
-            grep -n 'TRACE_INCLUDE_PATH' "$F" || true
+          set -e
+          # Many Qualcomm/backported trace headers set 'TRACE_INCLUDE_PATH .'. The
+          # 4.14 in-tree build does not add -I$(src), so define_trace.h resolves
+          # '.' relative to include/trace/ and the self re-include fails with
+          # "./xxx_trace.h: No such file or directory". Point each header at its
+          # real directory, expressed relative to include/trace/.
+          files=$(grep -rlE '^#define TRACE_INCLUDE_PATH[[:space:]]*\.[[:space:]]*$' \
+            drivers fs net sound security arch/arm64 2>/dev/null || true)
+          if [ -n "$files" ]; then
+            for f in $files; do
+              d=$(dirname "$f")
+              rel=$(realpath -m --relative-to=include/trace "$d")
+              sed -i "s|^#define TRACE_INCLUDE_PATH[[:space:]]*\.[[:space:]]*$|#define TRACE_INCLUDE_PATH $rel|" "$f"
+              echo "[+] $f -> $rel"
+            done
           else
-            echo "[-] $F not found; skipping mdss trace patch"
+            echo "[-] no trace headers need fixing"
           fi
 
       - name: Build kernel
@@ -208,7 +214,7 @@ jobs:
           CROSS_COMPILE_ARM32: arm-none-eabi-
           # GCC 10+ defaults to -fno-common, breaking old dtc and other hosts builds
           # AF_* address family update needed for newer glibc+SELinux classmap.h on 4.14
-          KCFLAGS: -fcommon -Wno-designated-init
+          KCFLAGS: -fcommon -Wno-designated-init -std=gnu11
           HOSTCFLAGS: -fcommon
           HOSTLDFLAGS: -fcommon
         run: |
