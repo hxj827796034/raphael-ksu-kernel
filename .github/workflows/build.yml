@@ -180,18 +180,19 @@ jobs:
           # MiCode raphael-p-oss kernel references Qualcomm vendor headers
           # (btfm_slim.h, etc.) that aren't in the OSS release.
           # Stub them out so the build can proceed.
+          # NOTE: avoid heredocs (the YAML parser treats `<<` as a merge key).
           F="drivers/bluetooth/btfm_slim.h"
           if [ ! -f "$F" ] && [ -f "drivers/bluetooth/btfm_slim.c" ]; then
-            cat > "$F" <<'STUB_HDR_END'
-/* SPDX-License-Identifier: GPL-2.0 */
-/* Stub for missing Qualcomm vendor header (MiCode OSS build) */
-#ifndef __BTFM_SLIM_H
-#define __BTFM_SLIM_H
-struct btfm_slim_data { int dummy; };
-static inline int btfm_slim_init(void) { return 0; }
-static inline void btfm_slim_exit(void) {}
-#endif
-STUB_HDR_END
+            {
+              echo "/* SPDX-License-Identifier: GPL-2.0 */"
+              echo "/* Stub for missing Qualcomm vendor header (MiCode OSS build) */"
+              echo "#ifndef __BTFM_SLIM_H"
+              echo "#define __BTFM_SLIM_H"
+              echo "struct btfm_slim_data { int dummy; };"
+              echo "static inline int btfm_slim_init(void) { return 0; }"
+              echo "static inline void btfm_slim_exit(void) {}"
+              echo "#endif"
+            } > "$F"
             echo "[+] Stubbed $F"
           fi
           # Other common ones in raphael-p-oss
