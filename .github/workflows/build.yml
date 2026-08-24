@@ -18,10 +18,8 @@ on:
         type: choice
         options: ['true', 'false']
   push:
-    paths:
-      - '.github/workflows/**'
-      - 'defconfig/**'
-      - 'scripts/ci-build.sh'
+    branches:
+      - main
 
 env:
   KSU_REPO: "https://github.com/SukiSU-Ultra/SukiSU-Ultra.git"
