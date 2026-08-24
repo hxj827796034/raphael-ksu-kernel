@@ -339,9 +339,11 @@ jobs:
               https://raw.githubusercontent.com/osm0sis/AnyKernel3/master/tools/ak3-core.sh
             chmod 0755 "$WORK/tools/ak3-core.sh"
           fi
-          # Choose best Image
+          # Choose best Image (image must include the DTB so it boots)
           if [ -f raphael/arch/arm64/boot/Image.gz-dtb ]; then
             cp raphael/arch/arm64/boot/Image.gz-dtb "$WORK/Image.gz"
+          elif [ -f raphael/arch/arm64/boot/Image-dtb ]; then
+            gzip -9 -c raphael/arch/arm64/boot/Image-dtb > "$WORK/Image.gz"
           elif [ -f raphael/arch/arm64/boot/Image.gz ]; then
             cp raphael/arch/arm64/boot/Image.gz "$WORK/"
           elif [ -f raphael/arch/arm64/boot/Image ]; then

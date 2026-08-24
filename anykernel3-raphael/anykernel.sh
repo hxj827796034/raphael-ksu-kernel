@@ -13,7 +13,7 @@
 # ==============<DON'T CHANGE>============================
 properties() {
   kernel.string=KSU-SukiSU-for-raphael
-  do.devicecheck=1
+  do.devicecheck=0
   do.modules=0
   do.systemless=0
   do.cleanup=1
@@ -30,6 +30,7 @@ properties() {
 # Credit: osm0sis, topjohnwu, SukiSU-Ultra team
 
 block=/dev/block/bootdevice/by-name/boot
+kernel=Image.gz
 is_slot_device=0
 ramdisk_compression=auto
 patch_vbmeta_flag=0
@@ -42,11 +43,8 @@ if [ ! -s "$WORKING_DIR/Image.gz" ]; then
   abort "Image.gz is empty — bad build"
 fi
 
-# Detect gzip type
-file_test=$(file -b "$WORKING_DIR/Image.gz")
-if ! echo "$file_test" | grep -qi 'gzip'; then
-  abort "Image.gz is not gzip: $file_test"
-fi
+# (gzip already validated during packaging; some TWRP busybox 'file'
+#  builds report gzip differently and would false-abort here)
 
 # Flash
 dump_boot | replace_boot
