@@ -55,7 +55,8 @@ jobs:
             libelf-dev libssl-dev rsync unzip wget xz-utils \
             zip ca-certificates python3 \
             gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
-            gcc-arm-none-eabi binutils-arm-none-eabi
+            gcc-arm-none-eabi binutils-arm-none-eabi \
+            lld
           echo "deps ok"
           aarch64-linux-gnu-gcc --version
           arm-none-eabi-gcc --version
@@ -275,6 +276,9 @@ jobs:
           # aarch64-linux-gnu-gcc (apt). KCFLAGS below neutralizes the
           # GCC 10+/11 warnings-as-errors on Qualcomm code.
           CC: aarch64-linux-gnu-gcc
+          # Use lld for linking (GNU ld hits R_AARCH64_ADR_PREL_PG_HI21 truncation
+          # against the Qualcomm .bss.rtic section on large kernels).
+          LD: ld.lld
           CROSS_COMPILE: aarch64-linux-gnu-
           CROSS_COMPILE_ARM32: arm-none-eabi-
           KCFLAGS: -fcommon -Wno-designated-init -Wno-error=implicit-int -std=gnu11
@@ -288,6 +292,7 @@ jobs:
           make "$DEFCONFIG"
           make -j"$(nproc)" \
             CC="$CC" \
+            LD="$LD" \
             CROSS_COMPILE="$CROSS_COMPILE" \
             CROSS_COMPILE_ARM32="$CROSS_COMPILE_ARM32" \
             KCFLAGS="$KCFLAGS" \
