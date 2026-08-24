@@ -196,3 +196,5 @@ kernel-raphael/
 - 刷机有风险，**自行承担**。
 - 不要在没备份 `boot` 的情况下刷。
 - 本工程不含 KSU/Kernel 的任何二进制或侵权内容；所有源码遵守各自上游 license。
+
+<!-- build-trigger: 2026-08-24T15:41:00Z -->
