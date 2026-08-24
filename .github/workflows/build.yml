@@ -184,6 +184,22 @@ jobs:
           # This step is now a no-op - the defconfig fragment handles it.
           echo "BTFM_SLIM disabled via defconfig fragment"
 
+      - name: Patch mdss PLL trace include path
+        working-directory: raphael
+        run: |
+          # mdss_pll_trace.h sets TRACE_INCLUDE_PATH to '.', but define_trace.h
+          # resolves that path relative to include/trace/ (not the .c file's dir),
+          # so '#include "./mdss_pll_trace.h"' fails with "No such file or directory".
+          # Point it at the real location, expressed relative to include/trace/.
+          F="drivers/clk/qcom/mdss/mdss_pll_trace.h"
+          if [ -f "$F" ]; then
+            sed -i 's|#define TRACE_INCLUDE_PATH \.$|#define TRACE_INCLUDE_PATH ../../drivers/clk/qcom/mdss|' "$F"
+            echo "[+] Patched $F:"
+            grep -n 'TRACE_INCLUDE_PATH' "$F" || true
+          else
+            echo "[-] $F not found; skipping mdss trace patch"
+          fi
+
       - name: Build kernel
         working-directory: raphael
         env:
@@ -192,7 +208,7 @@ jobs:
           CROSS_COMPILE_ARM32: arm-none-eabi-
           # GCC 10+ defaults to -fno-common, breaking old dtc and other hosts builds
           # AF_* address family update needed for newer glibc+SELinux classmap.h on 4.14
-          KCFLAGS: -fcommon
+          KCFLAGS: -fcommon -Wno-designated-init
           HOSTCFLAGS: -fcommon
           HOSTLDFLAGS: -fcommon
         run: |
