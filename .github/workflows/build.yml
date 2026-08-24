@@ -80,9 +80,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: KernelSU
-          key: ksu-${{ inputs.ksu_branch || 'main' }}
-          restore-keys: |
-            ksu-
+          key: ksu-${{ inputs.ksu_branch || 'v3.2.0' }}-${{ github.run_id }}
+          # No restore-keys: force a fresh clone of the exact KSU tag (the old
+          # 'ksu-' restore-keys was pulling the main-branch cache).
 
       - name: Cache ccache
         uses: actions/cache@v4
