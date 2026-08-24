@@ -226,19 +226,20 @@ jobs:
             sed -i 's|static inline sde_hw_intf_te_supported(const struct sde_mdss_cfg|static inline bool sde_hw_intf_te_supported(const struct sde_mdss_cfg|' "$F"
             echo "[+] fixed $F implicit int"
           fi
-          # The camera framework (SPECTRA_CAMERA) OSS dump has broken include
-          # paths: headers reference each other by basename across subdirs, but
-          # the per-subdir Makefiles only list a few -I dirs. Add every camera
-          # subdirectory to the include path for the whole camera build.
-          CAM="drivers/media/platform/msm/camera"
-          if [ -f "$CAM/Makefile" ]; then
-            echo "" >> "$CAM/Makefile"
-            echo "# CI: add all camera subdirs to include path" >> "$CAM/Makefile"
-            find "$CAM" -type d | sort | while read -r d; do
-              echo "subdir-ccflags-y += -I$d" >> "$CAM/Makefile"
-            done
-            echo "[+] patched $CAM/Makefile include paths"
-          fi
+          # CAF/Qualcomm drivers cross-reference headers by basename across
+          # subdirs, but the in-tree 4.14 kbuild does not add -I for subdirs.
+          # Add every subdir of the Qualcomm driver trees to the include path.
+          for tree in drivers/platform/msm drivers/media/platform/msm drivers/video/fbdev/msm drivers/gpu/msm drivers/clk/qcom; do
+            [ -f "$tree/Makefile" ] || continue
+            {
+              echo ""
+              echo "# CI: add all $tree subdirs to include path"
+              find "$tree" -type d | sort | while read -r d; do
+                echo "subdir-ccflags-y += -I$d"
+              done
+            } >> "$tree/Makefile"
+            echo "[+] patched $tree/Makefile include paths"
+          done
           # GCC 11's __builtin_object_size is more aggressive than the GCC the
           # 4.14 kernel expected; it makes check_copy_size()'s compile-time
           # __bad_copy_to/__bad_copy_from fire on Qualcomm GSI/IPA drivers. Keep
