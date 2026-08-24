@@ -43,6 +43,10 @@ CONFIG_MODULE_SIG=n
 # __crc_* symbols which breaks the arm64 PIE vmlinux link.
 # CONFIG_MODVERSIONS is not set
 
+# Disable kallsyms base-relative: relative symbol value out of range on
+# this large kernel image.
+# CONFIG_KALLSYMS_BASE_RELATIVE is not set
+
 # Performance/feature musts for K20 Pro
 CONFIG_SECCOMP=y
 CONFIG_SECCOMP_FILTER=y
