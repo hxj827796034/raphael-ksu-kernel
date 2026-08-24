@@ -182,7 +182,7 @@ jobs:
           # Stub them out so the build can proceed.
           F="drivers/bluetooth/btfm_slim.h"
           if [ ! -f "$F" ] && [ -f "drivers/bluetooth/btfm_slim.c" ]; then
-            cat > "$F" <<'EOF'
+            cat > "$F" <<'STUB_HDR_END'
 /* SPDX-License-Identifier: GPL-2.0 */
 /* Stub for missing Qualcomm vendor header (MiCode OSS build) */
 #ifndef __BTFM_SLIM_H
@@ -191,7 +191,7 @@ struct btfm_slim_data { int dummy; };
 static inline int btfm_slim_init(void) { return 0; }
 static inline void btfm_slim_exit(void) {}
 #endif
-EOF
+STUB_HDR_END
             echo "[+] Stubbed $F"
           fi
           # Other common ones in raphael-p-oss
