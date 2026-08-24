@@ -21,7 +21,7 @@ properties() {
   device.name1=raphael
   device.name2=
   device.name3=
-  supported.versions=10-15
+  supported.versions=9-16
   supported.patchlevels=
   supported.vendorpatchlevels=
 }
